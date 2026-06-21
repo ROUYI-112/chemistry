@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>雪原觀看挑戰</title>
+<style>
+  :root {
+    --sky: #cfe0e6;
+    --sky2: #dbe8ec;
+    --mist: #9fb6cc;
+    --mid: #5b6bb0;
+    --deep: #4150a0;
+    --deep2: #36438a;
+    --snow: #f3f6f8;
+    --snow-line: #e3ebef;
+    --ink: #2b3556;
+    --muted: #7c89ad;
+    --sun: #f2e08c;
+    --sun-deep: #e8cf63;
+    --fox: #e0622a;
+    --fox-deep: #c44f1d;
+    --card: #ffffff;
+    --line: #dde6ec;
+    --clear: #3f9e6b;
+    --clear-bg: #e7f3ec;
+    --lock: #aab6c8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    background: var(--sky2);
+    color: var(--ink);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 0 18px 100px; }
+
+  /* ── HUD ── */
+  .hud {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(219,232,236,0.86);
+    backdrop-filter: blur(12px);
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--line);
+  }
+  .hud-row { display: flex; align-items: center; gap: 13px; max-width: 760px; margin: 0 auto; }
+  .crest {
+    width: 38px; height: 38px; display: grid; place-items: center;
+    background: linear-gradient(160deg, var(--sun), var(--sun-deep));
+    border-radius: 11px; font-size: 19px; flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(232,207,99,0.4);
+  }
+  .hud-text { flex: 1; min-width: 0; }
+  .hud-title { font-size: 15px; font-weight: 800; letter-spacing: 0.02em; color: var(--ink); }
+  .hud-sub { font-size: 12px; color: var(--muted); }
+  .hud-stat { font-size: 21px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--fox); }
+  .hud-stat small { font-size: 13px; color: var(--muted); font-weight: 600; }
+  .bar { height: 7px; background: #c4d2da; border-radius: 99px; overflow: hidden; margin: 11px auto 0; max-width: 760px; }
+  .bar > span {
+    display: block; height: 100%; width: 0;
+    background: linear-gradient(90deg, var(--fox), var(--sun-deep));
+    border-radius: 99px; transition: width 0.6s cubic-bezier(.2,.8,.2,1);
+  }
+
+  /* ── Hero (SVG 雪景) ── */
+  .hero { position: relative; margin: 0 -18px 0; }
+  .hero svg { display: block; width: 100%; height: auto; }
+  .hero-cap {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    padding: 26px 24px 22px;
+    background: linear-gradient(to top, rgba(54,67,138,0.55), transparent);
+  }
+  .hero-cap h1 { color: #fff; font-size: 27px; font-weight: 800; letter-spacing: -0.01em; text-shadow: 0 2px 10px rgba(30,40,80,0.4); }
+  .hero-cap p { color: #e7eef5; font-size: 13.5px; margin-top: 3px; text-shadow: 0 1px 6px rgba(30,40,80,0.4); }
+
+  .intro-pad { height: 22px; }
+
+  /* ── Level card ── */
+  .level {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 16px; margin-bottom: 15px; overflow: hidden;
+    box-shadow: 0 2px 10px rgba(65,80,160,0.05);
+    transition: opacity .3s, transform .3s, border-color .3s, box-shadow .3s;
+  }
+  .level.locked { opacity: 0.6; }
+  .level.current { border-color: var(--fox); box-shadow: 0 0 0 1px var(--fox), 0 10px 26px rgba(224,98,42,0.16); }
+  .level.clear { border-color: #bfe0cd; }
+
+  .lv-head { display: flex; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; user-select: none; }
+  .badge {
+    width: 34px; height: 34px; flex-shrink: 0; display: grid; place-items: center;
+    border-radius: 9px; font-weight: 800; font-size: 14px; font-variant-numeric: tabular-nums;
+    background: #eef3f6; color: var(--muted); border: 1px solid var(--line);
+  }
+  .current .badge { background: linear-gradient(160deg, var(--fox), var(--fox-deep)); color: #fff; border: 0; }
+  .clear .badge { background: var(--clear-bg); color: var(--clear); border-color: #bfe0cd; }
+  .lv-text { flex: 1; min-width: 0; }
+  .lv-name { font-weight: 700; font-size: 15px; }
+  .lv-status { font-size: 12px; color: var(--muted); }
+  .clear .lv-status { color: var(--clear); }
+  .current .lv-status { color: var(--fox); }
+  .chev { color: var(--muted); font-size: 13px; transition: transform .25s; }
+  .level.open .chev { transform: rotate(180deg); }
+
+  .lv-body { display: none; }
+  .level.open .lv-body { display: block; }
+
+  .video { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #0c1430; }
+  .video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .lock-veil {
+    position: absolute; inset: 0; display: grid; place-items: center;
+    background: repeating-linear-gradient(45deg, #cdd9e400 0 12px, #b9c8d8aa 12px 24px), #d6e0e8;
+    color: var(--lock); text-align: center; padding: 20px;
+  }
+  .lock-veil .lk { font-size: 30px; margin-bottom: 6px; }
+  .lock-veil p { font-size: 13px; color: #8696ab; }
+
+  .lv-foot { display: flex; align-items: center; gap: 12px; padding: 14px 16px; }
+  .clear-btn {
+    flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+    border: 0; border-radius: 11px; padding: 13px 16px;
+    font-size: 15px; font-weight: 800; font-family: inherit; cursor: pointer;
+    background: linear-gradient(160deg, var(--fox), var(--fox-deep)); color: #fff;
+    transition: transform .12s, filter .12s;
+  }
+  .clear-btn:hover { filter: brightness(1.05); }
+  .clear-btn:active { transform: scale(0.98); }
+  .clear-btn.done { background: var(--clear-bg); color: var(--clear); box-shadow: inset 0 0 0 1.5px #9fd3b5; }
+  .clear-btn:disabled { opacity: 0.5; cursor: not-allowed; filter: none; }
+
+  .finale {
+    display: none; text-align: center; margin-top: 26px; padding: 34px 24px; position: relative; overflow: hidden;
+    border-radius: 18px; background: linear-gradient(165deg, #e9f0f5, #d4e1ea); border: 1px solid #bcd0e0;
+  }
+  .finale.show { display: block; animation: pop .5s ease; }
+  .finale .trophy { font-size: 52px; }
+  .finale h2 { font-size: 23px; font-weight: 800; margin-top: 6px; color: var(--ink); }
+  .finale p { color: var(--muted); margin-top: 5px; font-size: 14px; }
+  @keyframes pop { from { transform: scale(.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+  footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 36px; }
+  .reset { background: none; border: none; color: var(--muted); text-decoration: underline; cursor: pointer; font-size: 12px; font-family: inherit; }
+
+  #toast {
+    position: fixed; left: 50%; bottom: 30px; transform: translate(-50%, 30px);
+    background: linear-gradient(160deg, var(--fox), var(--fox-deep));
+    color: #fff; font-weight: 800; font-size: 15px;
+    padding: 13px 22px; border-radius: 13px; box-shadow: 0 12px 30px rgba(40,50,90,0.3);
+    opacity: 0; pointer-events: none; transition: all .35s cubic-bezier(.2,.8,.2,1); z-index: 100;
+  }
+  #toast.show { opacity: 1; transform: translate(-50%, 0); }
+  .confetti { position: fixed; top: -10px; width: 9px; height: 14px; z-index: 99; pointer-events: none; }
+</style>
+</head>
+<body>
+
+<div class="hud">
+  <div class="hud-row">
+    <div class="crest">🦊</div>
+    <div class="hud-text">
+      <div class="hud-title">雪原觀看挑戰</div>
+      <div class="hud-sub" id="hudSub">解鎖下一關</div>
+    </div>
+    <div class="hud-stat"><span id="doneN">0</span><small>/<span id="totalN">0</span></small></div>
+  </div>
+  <div class="bar"><span id="fill"></span></div>
+</div>
+
+<div class="wrap">
+  <div class="hero">
+    <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="雪原與狐狸">
+      <defs>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#cfe0e6"/><stop offset="1" stop-color="#dce8ec"/>
+        </linearGradient>
+        <linearGradient id="snowfield" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#5b6bb0"/><stop offset="1" stop-color="#4150a0"/>
+        </linearGradient>
+      </defs>
+      <rect width="760" height="300" fill="url(#sky)"/>
+      <circle cx="215" cy="120" r="46" fill="#f2e08c"/>
+      <circle cx="215" cy="120" r="46" fill="#f6e89e" opacity="0.5"/>
+      <!-- 遠山 -->
+      <path d="M0,150 Q120,70 250,110 Q360,150 470,120 Q600,85 760,135 L760,300 L0,300 Z" fill="#9fb6cc" opacity="0.55"/>
+      <path d="M0,165 Q150,120 320,150 Q500,180 760,150 L760,300 L0,300 Z" fill="#7e98bc" opacity="0.5"/>
+      <!-- 雪原 -->
+      <path d="M0,185 Q200,160 400,180 Q580,198 760,178 L760,300 L0,300 Z" fill="url(#snowfield)"/>
+      <!-- 前景雪坡 -->
+      <path d="M0,250 Q130,215 300,240 L300,300 L0,300 Z" fill="#eef3f7"/>
+      <path d="M300,240 Q150,215 0,250 L0,258 Q150,224 300,248 Z" fill="#dbe6ee" opacity="0.7"/>
+      <!-- 雪樹 -->
+      <g stroke="#2b3556" stroke-width="2.4" stroke-linecap="round" fill="none">
+        <path d="M560,255 L560,205"/>
+        <path d="M560,222 L543,205 M560,222 L578,205 M560,212 L548,198 M560,212 L573,198 M560,232 L546,220 M560,232 L575,220"/>
+      </g>
+      <g fill="#eef3f7"><!-- 樹上積雪點 -->
+        <circle cx="543" cy="203" r="2"/><circle cx="578" cy="203" r="2"/><circle cx="548" cy="196" r="1.8"/>
+        <circle cx="573" cy="196" r="1.8"/><circle cx="560" cy="201" r="2"/><circle cx="583" cy="210" r="1.6"/>
+        <circle cx="538" cy="210" r="1.6"/><circle cx="551" cy="190" r="1.6"/><circle cx="569" cy="190" r="1.6"/>
+      </g>
+      <!-- 狐狸 -->
+      <g>
+        <ellipse cx="512" cy="252" rx="13" ry="11" fill="#e0622a"/>
+        <path d="M508,244 q4,-12 9,-1 z" fill="#e0622a"/>
+        <path d="M512,255 q14,-2 18,8 q-9,3 -18,-2 z" fill="#e0622a"/>
+        <path d="M528,261 q4,1 5,4 q-3,1 -5,-1 z" fill="#f3f6f8"/>
+        <circle cx="510" cy="250" r="2" fill="#fff"/>
+        <circle cx="510" cy="250" r="0.9" fill="#2b3556"/>
+      </g>
+      <!-- 飄雪 -->
+      <g fill="#ffffff" opacity="0.85">
+        <circle cx="120" cy="60" r="1.6"/><circle cx="300" cy="40" r="1.4"/><circle cx="420" cy="75" r="1.6"/>
+        <circle cx="650" cy="50" r="1.5"/><circle cx="700" cy="100" r="1.4"/><circle cx="80" cy="120" r="1.3"/>
+        <circle cx="500" cy="45" r="1.3"/><circle cx="380" cy="110" r="1.4"/>
+      </g>
+    </svg>
+    <div class="hero-cap">
+      <h1>逐關解鎖 🔓</h1>
+      <p>一支影片就是一關，看完過關才解鎖下一關。全部通關拿獎盃 🏆</p>
+    </div>
+  </div>
+
+  <div class="intro-pad"></div>
+
+  <div id="list"></div>
+
+  <div class="finale" id="finale">
+    <div class="trophy">🏆</div>
+    <h2>全部通關！</h2>
+    <p>小狐狸陪你走完整片雪原，太強了。</p>
+  </div>
+
+  <footer>
+    進度只存在這台裝置 ·
+    <button class="reset" onclick="resetAll()">重新開始</button>
+  </footer>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const VIDEOS = [
+    { id: "2eBUe2p_UOg" }, { id: "3AxdtjBzjeY" }, { id: "bT3HiB4G0HI" },
+    { id: "2oaL0DbLr8c" }, { id: "RVxXWS26hsQ" }, { id: "nqZEcvPFBT8" },
+    { id: "YCXOWJjcAGA" }, { id: "rDfKCMC5DJ8" }, { id: "RXYQaL5ZDJY" },
+    { id: "Hyuo91MBNGs" }, { id: "yWwWvIb55gc" }, { id: "ecRytDM0YVo" },
+    { id: "YKsgeUPNjkU" }, { id: "KR9HJQxYMVg" }, { id: "nQzTBOyte10" },
+    { id: "8M2EQZ4Q4fk" }, { id: "lHGxzb4DatM" }, { id: "snG9jz3uVmA" },
+    { id: "lhvdzPFUJzQ" }, { id: "3YLmQXvi8QI" }, { id: "4ahOw9qQIyo" },
+    { id: "oiSeexJRzhg" }, { id: "wZopJHjxU8Q" }, { id: "BRdBEMmuJCE" },
+    { id: "mCUKxqoY_1Y" }, { id: "aCALgWnTSu4" },
+  ];
+  VIDEOS.forEach((v, i) => v.title = "第 " + (i + 1) + " 關");
+
+  const KEY = "watch-challenge-v1";
+  let watched = JSON.parse(localStorage.getItem(KEY) || "{}");
+  const listEl = document.getElementById("list");
+  document.getElementById("totalN").textContent = VIDEOS.length;
+
+  function currentIndex() {
+    for (let i = 0; i < VIDEOS.length; i++) if (!watched[VIDEOS[i].id]) return i;
+    return VIDEOS.length;
+  }
+
+  function render() {
+    const cur = currentIndex();
+    listEl.innerHTML = "";
+    VIDEOS.forEach((v, i) => {
+      const done = !!watched[v.id];
+      const unlocked = i <= cur;
+      const isCurrent = i === cur;
+      let cls = "level";
+      if (done) cls += " clear";
+      else if (isCurrent) cls += " current";
+      else cls += " locked";
+      if (unlocked && (isCurrent || done)) cls += " open";
+
+      const lv = document.createElement("div");
+      lv.className = cls;
+      lv.id = "lv" + i;
+      const status = done ? "✓ 已通關" : isCurrent ? "▶ 進行中" : "🔒 尚未解鎖";
+      const badge = done ? "✓" : (i + 1);
+
+      lv.innerHTML =
+        '<div class="lv-head" onclick="toggleOpen(' + i + ')">' +
+          '<div class="badge">' + badge + '</div>' +
+          '<div class="lv-text">' +
+            '<div class="lv-name">第 ' + (i + 1) + ' 關</div>' +
+            '<div class="lv-status">' + status + '</div>' +
+          '</div>' +
+          '<div class="chev">▾</div>' +
+        '</div>' +
+        '<div class="lv-body">' +
+          '<div class="video">' +
+            (unlocked
+              ? '<iframe src="https://www.youtube.com/embed/' + v.id + '" title="第 ' + (i+1) + ' 關" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>'
+              : '<div class="lock-veil"><div><div class="lk">🔒</div><p>先過上一關才會解鎖</p></div></div>') +
+          '</div>' +
+          '<div class="lv-foot">' +
+            '<button class="clear-btn ' + (done ? "done" : "") + '" ' + (unlocked ? "" : "disabled") + ' onclick="clearLevel(' + i + ', event)">' +
+              (done ? "✓ 已通關（點此取消）" : "看完了，過關！") +
+            '</button>' +
+          '</div>' +
+        '</div>';
+      listEl.appendChild(lv);
+    });
+    updateHud(cur);
+  }
+
+  function toggleOpen(i) {
+    const cur = currentIndex();
+    if (i > cur) return;
+    document.getElementById("lv" + i).classList.toggle("open");
+  }
+
+  function clearLevel(i, e) {
+    e.stopPropagation();
+    const v = VIDEOS[i];
+    const wasDone = !!watched[v.id];
+    if (wasDone) {
+      if (!confirm("取消這一關的通關紀錄？後面的關卡會重新鎖上。")) return;
+      sndFail();
+      for (let j = i; j < VIDEOS.length; j++) delete watched[VIDEOS[j].id];
+    } else {
+      watched[v.id] = true;
+      celebrate(i);
+    }
+    localStorage.setItem(KEY, JSON.stringify(watched));
+    render();
+    if (!wasDone) {
+      const next = currentIndex();
+      if (next < VIDEOS.length) {
+        setTimeout(function () {
+          var el = document.getElementById("lv" + next);
+          if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 400);
+      }
+    }
+  }
+
+  function updateHud(cur) {
+    const done = VIDEOS.filter(v => watched[v.id]).length;
+    const total = VIDEOS.length;
+    document.getElementById("doneN").textContent = done;
+    document.getElementById("fill").style.width = (done / total * 100) + "%";
+    document.getElementById("hudSub").textContent =
+      done === total ? "全部通關 🏆" : "目前第 " + Math.min(cur + 1, total) + " 關";
+    document.getElementById("finale").classList.toggle("show", done === total);
+  }
+
+  // ── 音效 ──
+  let _ac = null;
+  function audio() {
+    if (!_ac) _ac = new (window.AudioContext || window.webkitAudioContext)();
+    if (_ac.state === "suspended") _ac.resume();
+    return _ac;
+  }
+  function tone(ac, freq, start, dur, type, vol) {
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = type || "triangle";
+    o.frequency.setValueAtTime(freq, ac.currentTime + start);
+    g.gain.setValueAtTime(0.0001, ac.currentTime + start);
+    g.gain.exponentialRampToValueAtTime(vol || 0.2, ac.currentTime + start + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + start + dur);
+    o.connect(g); g.connect(ac.destination);
+    o.start(ac.currentTime + start); o.stop(ac.currentTime + start + dur + 0.02);
+  }
+  function sndClear(last) {
+    try {
+      const ac = audio();
+      const notes = last ? [523, 659, 784, 1047, 1319] : [523, 659, 784, 1047];
+      notes.forEach((f, i) => tone(ac, f, i * 0.09, 0.18, "triangle", 0.22));
+    } catch (e) {}
+  }
+  function sndFail() {
+    try {
+      const ac = audio();
+      tone(ac, 311, 0, 0.18, "sawtooth", 0.18);
+      tone(ac, 233, 0.12, 0.28, "sawtooth", 0.18);
+    } catch (e) {}
+  }
+
+  function celebrate(i) {
+    const last = i === VIDEOS.length - 1;
+    sndClear(last);
+    showToast(last ? "🏆 最終關通過！" : "🎉 第 " + (i + 1) + " 關 通過！");
+    confetti(last ? 60 : 28);
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById("toast");
+    t.textContent = msg; t.classList.add("show");
+    clearTimeout(t._t);
+    t._t = setTimeout(function () { t.classList.remove("show"); }, 1800);
+  }
+
+  function confetti(n) {
+    const colors = ["#e0622a", "#f2e08c", "#5b6bb0", "#ffffff", "#3f9e6b"];
+    for (let k = 0; k < n; k++) {
+      const c = document.createElement("div");
+      c.className = "confetti";
+      c.style.left = Math.random() * 100 + "vw";
+      c.style.background = colors[k % colors.length];
+      c.style.transform = "rotate(" + (Math.random()*360) + "deg)";
+      document.body.appendChild(c);
+      const dur = 1400 + Math.random() * 1200;
+      c.animate([{ top: "-10px", opacity: 1 }, { top: "100vh", opacity: 0.9 }],
+        { duration: dur, easing: "cubic-bezier(.3,.6,.5,1)" });
+      setTimeout(function () { c.remove(); }, dur);
+    }
+  }
+
+  function resetAll() {
+    if (!confirm("確定要清除所有進度、從第一關重新開始嗎？")) return;
+    watched = {};
+    localStorage.removeItem(KEY);
+    render();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  render();
+</script>
+</body>
+</html>
